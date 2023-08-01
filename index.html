@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategist</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+    <div class="imgcontainer">
+        <img src="./powerplay.webp" alt="">
+        <div class="overlay"></div>
+        <i class="ph ph-trash"></i>
+        <p class="cr">Copyright © 2023 by aanderson and Nexus Robotics</p>
+    </div>
+    <div class="toolcontainer open">
+        <i class="ph-fill ph-caret-right"></i>
+        <div class="toolitems">
+            <div class="toolitem"><img src="./img/redr.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+            <div class="toolitem"><img src="./img/redl.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+            <div class="toolitem"><img src="./img/bluer.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+            <div class="toolitem"><img src="./img/bluel.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+        </div>
+        
+    </div>
+</body>
+<script>
+    document.querySelector(".ph-caret-right").addEventListener("click", (e)=>{
+        console.log(document.querySelector(".toolcontainer").classList.contains("open"))
+        if(document.querySelector(".toolcontainer").classList.contains("open")){
+            document.querySelector(".toolcontainer").classList.remove("open");
+        }else{
+            document.querySelector(".toolcontainer").classList.add("open");
+        }
+    });
+    let dragElem;
+    let startX;
+    let startY;
+    let ratio;
+    document.querySelectorAll(".toolitem img").forEach((e)=>{
+        e.addEventListener("dragstart", (ed)=>{
+            const dragImage = new Image();
+            dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+            ed.dataTransfer.setDragImage(dragImage, 0, 0);
+        })
+        e.addEventListener("drag", (ev)=>{
+            ev.preventDefault();
+            const x = ev.x;
+            const y = ev.y;
+            if(!dragElem){
+                startX = x - e.getBoundingClientRect().x;
+                startY = y - e.getBoundingClientRect().y;
+                dragElem = e.cloneNode();
+                dragElem.addEventListener("dragstart", (ed)=>{
+                    const dragImage = new Image();
+                    dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+                    ed.dataTransfer.setDragImage(dragImage, 0, 0);
+                })
+                addEvListeners(dragElem);
+                document.querySelector(".overlay").appendChild(dragElem);
+                if(dragElem.getAttribute("meta")){
+                    if(JSON.parse(dragElem.getAttribute("meta")).scaleoffset){
+                        dragElem.style = `transform:scale(${JSON.parse(dragElem.getAttribute("meta")).scaleoffset});`;
+                    }
+                }
+                dragElem.style.position = "absolute";
+            }
+            dragElem.style.left = ((x-startX - document.querySelector(".overlay").getBoundingClientRect().x)/ratio) + "px";
+            dragElem.style.top = ((y-startY - document.querySelector(".overlay").getBoundingClientRect().y)/ratio) + "px";
+            const trashBounds = document.querySelector(".ph-trash").getBoundingClientRect();
+            dragElem.classList.add("moving");
+            if(x > trashBounds.x && x < trashBounds.x+trashBounds.width && y > trashBounds.y && y < trashBounds.y+trashBounds.height){
+                document.querySelector(".ph-trash").classList.add("red");
+            }else{
+                document.querySelector(".ph-trash").classList.remove("red");
+            }
+        })
+        e.addEventListener("dragend", (ev)=>{
+            ev.preventDefault();
+            const x = ev.x;
+            const y = ev.y;
+            dragElem.style.left = ((x-startX - document.querySelector(".overlay").getBoundingClientRect().x)/ratio) + "px";
+            dragElem.style.top = ((y-startY - document.querySelector(".overlay").getBoundingClientRect().y)/ratio) + "px";
+            const trashBounds = document.querySelector(".ph-trash").getBoundingClientRect();
+            if(x > trashBounds.x && x < trashBounds.x+trashBounds.width && y > trashBounds.y && y < trashBounds.y+trashBounds.height){
+                dragElem.remove();
+            }
+            dragElem.classList.remove("moving");
+            dragElem = false;
+        })
+    })
+    function addEvListeners(e){
+
+        e.addEventListener("drag", (ev)=>{
+            ev.preventDefault();
+            const x = ev.x;
+            const y = ev.y;
+            let scaleOff = false;
+            if(!dragElem){
+                dragElem = e;
+                if(dragElem.getAttribute("meta")){
+                    if(JSON.parse(dragElem.getAttribute("meta")).scaleoffset){
+                        scaleOff = JSON.parse(dragElem.getAttribute("meta")).scaleoffset;
+                        console.log(scaleOff)
+                    }
+                }
+                startX = x/scaleOff - e.getBoundingClientRect().x/scaleOff;
+                startY = y/scaleOff - e.getBoundingClientRect().y/scaleOff;
+            }
+            dragElem.style.left = ((x-startX - document.querySelector(".overlay").getBoundingClientRect().x)/ratio) + "px";
+            dragElem.style.top = ((y-startY - document.querySelector(".overlay").getBoundingClientRect().y)/ratio) + "px";
+            const trashBounds = document.querySelector(".ph-trash").getBoundingClientRect();
+            dragElem.classList.add("moving");
+            if(x > trashBounds.x && x < trashBounds.x+trashBounds.width && y > trashBounds.y && y < trashBounds.y+trashBounds.height){
+                document.querySelector(".ph-trash").classList.add("red");
+            }else{
+                document.querySelector(".ph-trash").classList.remove("red");
+            }
+        })
+        e.addEventListener("dragend", (ev)=>{
+            ev.preventDefault();
+            const x = ev.x;
+            const y = ev.y;
+            dragElem.style.left = ((x-startX - document.querySelector(".overlay").getBoundingClientRect().x)/ratio) + "px";
+            dragElem.style.top = ((y-startY - document.querySelector(".overlay").getBoundingClientRect().y)/ratio) + "px";
+            const trashBounds = document.querySelector(".ph-trash").getBoundingClientRect();
+            if(x > trashBounds.x && x < trashBounds.x+trashBounds.width && y > trashBounds.y && y < trashBounds.y+trashBounds.height){
+                dragElem.remove();
+            }
+            dragElem.classList.remove("moving");
+            dragElem = false;
+        })
+    }
+    window.addEventListener("load", onResize);
+    window.onresize = onResize;
+    function onResize(){
+        console.log(document.querySelector(".imgcontainer img").getBoundingClientRect().width/960)
+        document.querySelector(".overlay").style = `transform:scale(${document.querySelector(".imgcontainer img").getBoundingClientRect().width/960});`
+        ratio = document.querySelector(".imgcontainer img").getBoundingClientRect().width/960;
+    }
+</script>
+<style>
+    .cr{
+        position: absolute;
+        z-index: 0;
+        left: 10px;
+        bottom: 10px;
+        margin-bottom: 0;
+        color: white;
+    }
+    .ph-trash{
+        font-size: 50px;
+        color: white;
+        position: absolute;
+        right: 10px;
+        top: 10px;
+    }
+    .ph-trash.red{
+        color: red;
+    }
+    .toolitemimg.moving{
+        z-index: 2;
+        opacity: 0.5;
+        box-shadow: -12px 10px 5px 0px rgba(0,0,0,0.5);
+        -webkit-box-shadow: -12px 10px 5px 0px rgba(0,0,0,0.5);
+        -moz-box-shadow: -12px 10px 5px 0px rgba(0,0,0,0.5);
+    }
+    .overlay{
+        height: 960px;
+        width: 960px;
+        position: absolute;
+        z-index: 2;
+    }
+    .toolitems{
+        z-index: 5;
+        max-width: calc(100vw - 50px);
+        width: 400px;
+        height: 100vh;
+        left: 0;
+        top: 0;
+        position: absolute;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .toolitemimg{
+        z-index: 2;
+        cursor: grab;
+        height: 75px;
+    }
+    .toolitem{
+        max-width: calc(100vw - 50px);
+        height: 75px;
+        margin: 10px;
+    }
+    .ph-caret-right{
+        z-index: 100;
+        position: absolute;
+        color: white;
+        font-size: 30px;
+        right: 0;
+        cursor: pointer;
+        
+        transform: scaleX(1) translateX(30px);
+        transition: transform 0.2s ease-in-out;
+    }
+    .toolcontainer.open .ph-caret-right{
+        transform: scaleX(-1);
+    }
+    body{
+        background-image: url("./brushed-alum\ \(1\).png");
+        overflow-x: hidden;
+    }
+    body img{
+        max-width: 100vw;
+        max-height: 100vh;
+        
+    }
+    .imgcontainer{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100vw;
+        height: 100vh;
+        left: 0;
+        top: 0;
+        position: absolute;
+    }
+    .toolcontainer{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        left: -400px;
+        width: 400px;
+        transition: left 0.2s ease-in-out;
+        max-width: calc(100vw - 50px);
+        position: absolute;
+        height: 100vh;
+        top: 0;
+        background-color: rgba(0, 0, 0, 0.315);
+    }
+    .toolcontainer.open{
+        left: 0;
+    }
+</style>
+</html>
