@@ -32,6 +32,7 @@
             <div class="toolsdraw">
                 <input type="color">
                 <div class="tooldraw" id="pencil"><i class="ph ph-pen"></i></div>
+                <div class="tooldraw" id="eraser"><i class="ph ph-eraser"></i></div>
             </div>
         </div>
         
@@ -45,7 +46,18 @@
             allowedToDraw = false;
         }else{
             document.getElementById("pencil").classList.add("selected")
+            document.getElementById("eraser").classList.remove("selected")
             allowedToDraw = true;
+        }
+    })
+    document.getElementById("eraser").addEventListener("click", ()=>{
+        if(document.getElementById("eraser").classList.contains("selected")){
+            document.getElementById("eraser").classList.remove("selected")
+            allowedToDraw = false;
+        }else{
+            document.getElementById("eraser").classList.add("selected")
+            document.getElementById("pencil").classList.remove("selected")
+            allowedToDraw = "erase";
         }
     })
     const canvas = document.getElementById("drawlayer");
@@ -67,14 +79,20 @@
       if (!isDrawing) return;
       const x = ((e.clientX||e.touches[0].clientX) - document.querySelector(".overlay").getBoundingClientRect().x)/ratio;
       const y = ((e.clientY||e.touches[0].clientY) - document.querySelector(".overlay").getBoundingClientRect().y)/ratio;
-
-      ctx.beginPath();
       ctx.strokeStyle = drawColor;
       ctx.lineWidth = 3;
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-
+      ctx.beginPath();
+      if(allowedToDraw == "erase"){
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.arc(x, y, 30, 0, Math.PI * 2);
+        ctx.fill();
+      }else{
+        ctx.globalCompositeOperation = "source-over";
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+     
       [lastX, lastY] = [x, y];
     }
     function stopDrawing() {
@@ -327,6 +345,7 @@
     window.addEventListener("load", onResize);
     window.onresize = onResize;
     function onResize(){
+        drawColor = document.querySelector("input[type='color']").value;
         document.querySelector(".overlay").style = `transform:scale(${document.querySelector(".imgcontainer img").getBoundingClientRect().width/960});`
         document.getElementById("drawlayer").style = `transform:scale(${document.querySelector(".imgcontainer img").getBoundingClientRect().width/960});`
         ratio = document.querySelector(".imgcontainer img").getBoundingClientRect().width/960;
@@ -345,6 +364,9 @@
             obj.id = e.id;
             json.elements.push(obj);
         }
+        const ccontents = canvas.toDataURL();
+        var data = {data:ccontents};
+        json.drawing = data;
         return JSON.stringify(json);
     }
 
@@ -387,7 +409,14 @@
             node.style.position = "absolute";
             toolitems.appendChild(node);
             addEvListeners(node);
+            
         }
+        const image = new Image();
+        image.onload = function(){
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
+        }
+        image.src = json.drawing.data;
     }
     document.querySelector(".openbutton").addEventListener("click", ()=>{
         document.getElementById("openFile").click();
