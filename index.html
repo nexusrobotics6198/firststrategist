@@ -12,24 +12,114 @@
 <body>
     <div class="imgcontainer">
         <img src="./powerplay.webp" alt="">
+        <canvas id="drawlayer" width="960" height="960"></canvas>
         <div class="overlay"></div>
         <i class="ph ph-trash"></i>
+        <input type="file" accept=".ftcs" style="visibility: hidden; width: 0; position: absolute; height: 0;" id="openFile">
+        <button class="openbutton">Open</button>
+        <button class="savebutton">Save</button>
         <p class="cr">Copyright © 2023 by aanderson & Nexus Robotics</p>
     </div>
     <div class="toolcontainer open">
         <i class="ph-fill ph-caret-right"></i>
-        <div class="toolitems">
-            <div class="toolitem"><img src="./img/redr.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
-            <div class="toolitem"><img src="./img/redl.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
-            <div class="toolitem"><img src="./img/bluer.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
-            <div class="toolitem"><img src="./img/bluel.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+        <div class="tools">
+            <div class="toolitems">
+                <div class="toolitem"><img src="./img/redr.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+                <div class="toolitem"><img src="./img/redl.png" id="redl" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+                <div class="toolitem"><img src="./img/bluer.png" id="bluer" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+                <div class="toolitem"><img src="./img/bluel.png" id="bluel" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+            </div>
+            <div class="toolsdraw">
+                <input type="color">
+                <div class="tooldraw" id="pencil"><i class="ph ph-pen"></i></div>
+            </div>
         </div>
+        
         
     </div>
 </body>
 <script>
+    document.getElementById("pencil").addEventListener("click", ()=>{
+        if(document.getElementById("pencil").classList.contains("selected")){
+            document.getElementById("pencil").classList.remove("selected")
+            allowedToDraw = false;
+        }else{
+            document.getElementById("pencil").classList.add("selected")
+            allowedToDraw = true;
+        }
+    })
+    const canvas = document.getElementById("drawlayer");
+    const ctx = canvas.getContext("2d");
+    let isDrawing = false;
+    let allowedToDraw = false;
+    let drawColor = "#FFFFFF";
+    let lastX = 0;
+    let lastY = 0;
+    document.querySelector("input[type='color']").addEventListener("change", (e)=>{
+        drawColor = document.querySelector("input[type='color']").value;
+    })
+    function startDrawing(e){
+        isDrawing = true;
+        lastX = ((e.clientX) - document.querySelector(".overlay").getBoundingClientRect().x)/ratio;
+        lastY = ((e.clientY) - document.querySelector(".overlay").getBoundingClientRect().y)/ratio;
+    }
+    function draw(e) {
+      if (!isDrawing) return;
+      const x = ((e.clientX||e.touches[0].clientX) - document.querySelector(".overlay").getBoundingClientRect().x)/ratio;
+      const y = ((e.clientY||e.touches[0].clientY) - document.querySelector(".overlay").getBoundingClientRect().y)/ratio;
+
+      ctx.beginPath();
+      ctx.strokeStyle = drawColor;
+      ctx.lineWidth = 3;
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      [lastX, lastY] = [x, y];
+    }
+    function stopDrawing() {
+      isDrawing = false;
+    }
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stopDrawing);
+    canvas.addEventListener("mouseout", stopDrawing);
+    canvas.addEventListener("touchstart", startDrawing);
+    canvas.addEventListener("touchmove", draw);
+    canvas.addEventListener("touchend", stopDrawing);
+
+    document.querySelector(".overlay").addEventListener("mousedown", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new MouseEvent("mousedown", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
+    })
+    document.querySelector(".overlay").addEventListener("mousemove", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new MouseEvent("mousemove", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
+    })
+    document.querySelector(".overlay").addEventListener("mouseup", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new MouseEvent("mouseup", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
+    })
+    document.querySelector(".overlay").addEventListener("mouseout", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new MouseEvent("mouseout", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
+    })
+    document.querySelector(".overlay").addEventListener("touchstart", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new TouchEvent("touchstart", e));
+    })
+    document.querySelector(".overlay").addEventListener("touchmove", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new TouchEvent("touchmove", e));
+    })
+    document.querySelector(".overlay").addEventListener("touchend", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new TouchEvent("touchend", e));
+    })
     document.querySelector(".ph-caret-right").addEventListener("click", (e)=>{
-        console.log(document.querySelector(".toolcontainer").classList.contains("open"))
         if(document.querySelector(".toolcontainer").classList.contains("open")){
             document.querySelector(".toolcontainer").classList.remove("open");
         }else{
@@ -86,11 +176,7 @@
                 startX = x - e.getBoundingClientRect().x;
                 startY = y - e.getBoundingClientRect().y;
                 dragElem = e.cloneNode();
-                dragElem.addEventListener("dragstart", (ed)=>{
-                    const dragImage = new Image();
-                    dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-                    ed.dataTransfer.setDragImage(dragImage, 0, 0);
-                })
+                
                 addEvListeners(dragElem);
                 document.querySelector(".overlay").appendChild(dragElem);
                 if(dragElem.getAttribute("meta")){
@@ -158,7 +244,6 @@
                 if(dragElem.getAttribute("meta")){
                     if(JSON.parse(dragElem.getAttribute("meta")).scaleoffset){
                         scaleOff = JSON.parse(dragElem.getAttribute("meta")).scaleoffset;
-                        console.log(scaleOff)
                     }
                 }
                 startX = x/scaleOff - e.getBoundingClientRect().x/scaleOff;
@@ -184,7 +269,6 @@
                 if(dragElem.getAttribute("meta")){
                     if(JSON.parse(dragElem.getAttribute("meta")).scaleoffset){
                         scaleOff = JSON.parse(dragElem.getAttribute("meta")).scaleoffset;
-                        console.log(scaleOff)
                     }
                 }
                 startX = x/scaleOff - e.getBoundingClientRect().x/scaleOff;
@@ -234,16 +318,129 @@
             dragElem.classList.remove("moving");
             dragElem = false;
         })
+        e.addEventListener("dragstart", (ed)=>{
+            const dragImage = new Image();
+            dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+            ed.dataTransfer.setDragImage(dragImage, 0, 0);
+        })
     }
     window.addEventListener("load", onResize);
     window.onresize = onResize;
     function onResize(){
-        console.log(document.querySelector(".imgcontainer img").getBoundingClientRect().width/960)
         document.querySelector(".overlay").style = `transform:scale(${document.querySelector(".imgcontainer img").getBoundingClientRect().width/960});`
+        document.getElementById("drawlayer").style = `transform:scale(${document.querySelector(".imgcontainer img").getBoundingClientRect().width/960});`
         ratio = document.querySelector(".imgcontainer img").getBoundingClientRect().width/960;
     }
+
+    function putInJson(){
+        let json = {game:"powerplay", elements:[]};
+        const toolitems = document.querySelector(".overlay");
+        for(let i = 0; i < toolitems.children.length; i++){
+            const e = toolitems.children[i];
+            let obj = {};
+            obj.x = parseFloat(e.style.left.split("px")[0]);
+            obj.y = parseFloat(e.style.top.split("px")[0]);
+            obj.meta = e.getAttribute("meta");
+            obj.src = e.src;
+            obj.id = e.id;
+            json.elements.push(obj);
+        }
+        return JSON.stringify(json);
+    }
+
+    function saveFile(){
+        const json = putInJson();
+        const blob = new Blob([json], {type:'text/ftcs'});
+        const filename = "STRATEGY-"+Date.now()+".ftcs";
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
+
+
+    function loadFromJson(json){
+        json = JSON.parse(json);
+        const toolitems = document.querySelector(".overlay");
+        toolitems.innerHTML = "";
+        for(let i = 0; i < json.elements.length; i++){
+            let e = json.elements[i];
+            //<div class="toolitem"><img src="./img/bluel.png" id="bluel" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+            let node = document.createElement("img");
+            node.src = e.src;
+            node.classList.add("toolitemimg");
+            node.setAttribute("meta", e.meta);
+            let scaleOff = false;
+            if(node.getAttribute("meta")){
+                if(JSON.parse(node.getAttribute("meta")).scaleoffset){
+                    scaleOff = JSON.parse(node.getAttribute("meta")).scaleoffset;
+                }
+            }
+            node.style = `transform:scale(${scaleOff});`;
+            node.style.left = e.x + "px";
+            node.style.top = e.y + "px";
+            node.style.position = "absolute";
+            toolitems.appendChild(node);
+            addEvListeners(node);
+        }
+    }
+    document.querySelector(".openbutton").addEventListener("click", ()=>{
+        document.getElementById("openFile").click();
+    })
+    document.querySelector(".savebutton").addEventListener("click", ()=>{
+        console.log("saving file")
+        saveFile();
+    })
+    document.getElementById("openFile").addEventListener("change", (e)=>{
+        const file = e.target.files[0];
+        if (!file) {
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const content = event.target.result;
+            loadFromJson(content);
+        };
+        reader.readAsText(file);
+    })
 </script>
 <style>
+    
+    .openbutton{
+        position: absolute;
+        right: 75px;
+        top: 20px;
+        height: 35px;
+        width: 75px;
+        font-size: 20px;
+        outline: none;
+        background-color: transparent;
+        border: 2px white solid;
+        color: white;
+        cursor: pointer;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    .savebutton{
+        position: absolute;
+        right: 160px;
+        top: 20px;
+        height: 35px;
+        width: 75px;
+        font-size: 20px;
+        outline: none;
+        background-color: transparent;
+        border: 2px white solid;
+        color: white;
+        cursor: pointer;
+        border-radius: 12px;
+        font-weight: 600;
+    }
     body{
         overflow: hidden;
     }
@@ -281,18 +478,86 @@
         position: absolute;
         z-index: 2;
     }
+    #drawlayer{
+        height: 960px;
+        width: 960px;
+        position: absolute;
+        z-index: 2;
+    }
     .toolitems{
         z-index: 5;
         max-width: calc(100vw - 50px);
         width: 400px;
-        height: 100vh;
-        left: 0;
-        top: 0;
-        position: absolute;
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
+    }
+    input[type="color"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    height: 85px;
+    width: 85px;
+    transform: translateY(-3px);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    }
+    input[type="color"]::-webkit-color-swatch {
+    border-radius: 15px;
+    border: 1px rgb(110, 110, 110) solid;
+    }
+    input[type="color"]::-moz-color-swatch {
+    border-radius: 15px;
+    border: 1px rgb(110, 110, 110) solid;
+    }
+    .toolsdraw{
+        z-index: 5;
+        max-width: calc(100vw - 50px);
+        width: 400px;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .tooldraw{
+        width: 75px;
+        height: 75px;
+        background-color: transparent;
+        border: 1px rgb(110, 110, 110) solid;;
+        border-radius: 15px;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .tooldraw i{
+        font-size: 40px;
+        color: rgb(110, 110, 110);
+    }
+    .tooldraw.selected{
+        width: 75px;
+        height: 75px;
+        background-color: transparent;
+        border: 1px white solid;;
+        border-radius: 15px;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .tooldraw.selected i{
+        font-size: 40px;
+        color: white;
+    }
+    .tools{
+        max-width: calc(100vw - 50px);
+        width: 400px;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        flex-direction: column;
     }
     .toolitemimg{
         z-index: 2;
