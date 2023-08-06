@@ -18,137 +18,317 @@
         <input type="file" accept=".ftcs" style="visibility: hidden; width: 0; position: absolute; height: 0;" id="openFile">
         <button class="openbutton">Open</button>
         <button class="savebutton">Save</button>
-        <p class="cr">Copyright © 2023 by aanderson & Nexus Robotics</p>
+        <p class="cr">Copyright © 2023 by aanderson & Nexus Robotics 6198</p>
     </div>
     <div class="toolcontainer open">
         <i class="ph-fill ph-caret-right"></i>
         <div class="tools">
-            <div class="toolitems">
-                <div class="toolitem"><img src="./img/redr.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
-                <div class="toolitem"><img src="./img/redl.png" id="redl" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
-                <div class="toolitem"><img src="./img/bluer.png" id="bluer" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
-                <div class="toolitem"><img src="./img/bluel.png" id="bluel" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
-            </div>
             <div class="toolsdraw">
                 <input type="color">
                 <div class="tooldraw" id="pencil"><i class="ph ph-pen"></i></div>
                 <div class="tooldraw" id="eraser"><i class="ph ph-eraser"></i></div>
             </div>
+            <div class="toolitems">
+                <div class="toolitem"><img src="./img/redr.png" id="redr" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+                <div class="toolitem"><img src="./img/redl.png" id="redl" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+                <div class="toolitem"><img src="./img/bluer.png" id="bluer" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+                <div class="toolitem"><img src="./img/bluel.png" id="bluel" class="toolitemimg" meta='{"scaleoffset":1.5}'></div>
+                <div class="toolitem"><img src="./img/bluecone.png" id="bluer" class="toolitemimg" meta='{"scaleoffset":0.4}'></div>
+                <div class="toolitem"><img src="./img/redcone.png" id="bluel" class="toolitemimg" meta='{"scaleoffset":0.4}'></div>
+                <input type="file" accept="image/*" style="visibility: hidden; width: 0; position: absolute; height: 0;" id="uploadImage">
+                <button class="uploadImage">Upload Image</button>
+            </div>
+            
         </div>
         
         
     </div>
+    <div class="keyframecontainer">
+        <div class="playkey"><div class="inner"><i class="ph-fill ph-play play-pause"></i><button class="nkey">Keyframe</button></div></div>
+        <i class="ph-fill ph-caret-up"></i>
+        <div class="hrcontainer">
+            <div class="marker"><div class="inner"></div></div>
+            <hr>
+        </div>
+        
+    </div>
 </body>
 <script>
-    document.getElementById("pencil").addEventListener("click", ()=>{
-        if(document.getElementById("pencil").classList.contains("selected")){
-            document.getElementById("pencil").classList.remove("selected")
-            allowedToDraw = false;
+    function getConstant(){
+        let windowWidth = window.innerWidth;
+        if(windowWidth < 1022){
+            return 0.0333333333333333333333333333;
         }else{
-            document.getElementById("pencil").classList.add("selected")
-            document.getElementById("eraser").classList.remove("selected")
-            allowedToDraw = true;
+            return (windowWidth-20)/30000;
         }
-    })
-    document.getElementById("eraser").addEventListener("click", ()=>{
-        if(document.getElementById("eraser").classList.contains("selected")){
-            document.getElementById("eraser").classList.remove("selected")
-            allowedToDraw = false;
+    }
+    function play(){
+        if(keyframes.length){
+            donePlaying = false;
+            isPlaying = true;
+            let firstFrame = keyframes[0];
+            let frameIndex = 0;
+            let nextFrame = firstFrame;
+            for(let i = 0; i < nextFrame.objs.length; i++){
+                const e = nextFrame.objs[i];
+                document.getElementById(e.id).style.left = e.x + "px";
+                document.getElementById(e.id).style.top = e.y + "px";
+            } 
+            time = firstFrame.time;
+            let timeToGetThere;
+            document.querySelector(".marker").style.left = (time*getConstant()) + "px";
+            function nextMs(){
+                // do stuff
+                if(isPlaying){
+                    if(time >= nextFrame.time){
+                        if(frameIndex + 1 > keyframes.length - 1){
+                            donePlaying = true;
+                            isPlaying = false;
+                            document.querySelector(".play-pause").classList.replace("ph-pause", "ph-play")
+                            return;
+                        }
+                        frameIndex++;
+                        nextFrame = keyframes[frameIndex];
+                        timeToGetThere = nextFrame.time - time;
+                    }
+                    if(timeToGetThere > 0){
+                        let unit = 20;
+                        for(let i = 0; i < nextFrame.objs.length; i++){
+                            const e = nextFrame.objs[i];
+                            let prevX = false;
+                            let prevY = false;
+                            for(let t = 0; t < keyframes[frameIndex - 1].objs.length; t++){
+                                if(keyframes[frameIndex - 1].objs[t].id == e.id){
+                                    prevX = keyframes[frameIndex - 1].objs[t].x;
+                                    prevY = keyframes[frameIndex - 1].objs[t].y;
+                                }
+                            }
+                            if(prevX !== false && prevY !== false){
+                                let dx = e.x - prevX;
+                                let dy = e.y - prevY;
+                                const pxPerUnitX = dx/(timeToGetThere/unit);
+                                const pxPerUnitY = dy/(timeToGetThere/unit);
+                                document.getElementById(e.id).style.left = (parseFloat(document.getElementById(e.id).style.left.split("px")[0]) + pxPerUnitX) + "px";
+                                document.getElementById(e.id).style.top = (parseFloat(document.getElementById(e.id).style.top.split("px")[0]) + pxPerUnitY) + "px";
+                            }
+                        }
+                    }
+                }
+                if(time < 30000){
+                    setTimeout(nextMs, 20);
+                    if(isPlaying){
+                        time += 20;
+                        document.querySelector(".marker").style.left = (time*getConstant()) + "px";
+                    }
+                }else{
+                    donePlaying = true;
+                    isPlaying = false;
+                    document.querySelector(".play-pause").classList.replace("ph-pause", "ph-play")
+                }
+            }
+            setTimeout(nextMs, 20);
         }else{
-            document.getElementById("eraser").classList.add("selected")
-            document.getElementById("pencil").classList.remove("selected")
-            allowedToDraw = "erase";
+            document.querySelector(".play-pause").classList.replace("ph-pause", "ph-play")
         }
-    })
-    const canvas = document.getElementById("drawlayer");
-    const ctx = canvas.getContext("2d");
-    let isDrawing = false;
-    let allowedToDraw = false;
-    let drawColor = "#FFFFFF";
-    let lastX = 0;
-    let lastY = 0;
-    document.querySelector("input[type='color']").addEventListener("change", (e)=>{
-        drawColor = document.querySelector("input[type='color']").value;
-    })
-    function startDrawing(e){
-        isDrawing = true;
-        lastX = ((e.clientX) - document.querySelector(".overlay").getBoundingClientRect().x)/ratio;
-        lastY = ((e.clientY) - document.querySelector(".overlay").getBoundingClientRect().y)/ratio;
     }
-    function draw(e) {
-      if (!isDrawing) return;
-      const x = ((e.clientX||e.touches[0].clientX) - document.querySelector(".overlay").getBoundingClientRect().x)/ratio;
-      const y = ((e.clientY||e.touches[0].clientY) - document.querySelector(".overlay").getBoundingClientRect().y)/ratio;
-      ctx.strokeStyle = drawColor;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      if(allowedToDraw == "erase"){
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.arc(x, y, 30, 0, Math.PI * 2);
-        ctx.fill();
-      }else{
-        ctx.globalCompositeOperation = "source-over";
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-      }
-     
-      [lastX, lastY] = [x, y];
-    }
-    function stopDrawing() {
-      isDrawing = false;
-    }
-    function clearCanvas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-    canvas.addEventListener("mousedown", startDrawing);
-    canvas.addEventListener("mousemove", draw);
-    canvas.addEventListener("mouseup", stopDrawing);
-    canvas.addEventListener("mouseout", stopDrawing);
-    canvas.addEventListener("touchstart", startDrawing);
-    canvas.addEventListener("touchmove", draw);
-    canvas.addEventListener("touchend", stopDrawing);
-
-    document.querySelector(".overlay").addEventListener("mousedown", (e)=>{
-        if(allowedToDraw)
-        canvas.dispatchEvent(new MouseEvent("mousedown", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
-    })
-    document.querySelector(".overlay").addEventListener("mousemove", (e)=>{
-        if(allowedToDraw)
-        canvas.dispatchEvent(new MouseEvent("mousemove", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
-    })
-    document.querySelector(".overlay").addEventListener("mouseup", (e)=>{
-        if(allowedToDraw)
-        canvas.dispatchEvent(new MouseEvent("mouseup", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
-    })
-    document.querySelector(".overlay").addEventListener("mouseout", (e)=>{
-        if(allowedToDraw)
-        canvas.dispatchEvent(new MouseEvent("mouseout", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
-    })
-    document.querySelector(".overlay").addEventListener("touchstart", (e)=>{
-        if(allowedToDraw)
-        canvas.dispatchEvent(new TouchEvent("touchstart", e));
-    })
-    document.querySelector(".overlay").addEventListener("touchmove", (e)=>{
-        if(allowedToDraw)
-        canvas.dispatchEvent(new TouchEvent("touchmove", e));
-    })
-    document.querySelector(".overlay").addEventListener("touchend", (e)=>{
-        if(allowedToDraw)
-        canvas.dispatchEvent(new TouchEvent("touchend", e));
-    })
-    document.querySelector(".ph-caret-right").addEventListener("click", (e)=>{
-        if(document.querySelector(".toolcontainer").classList.contains("open")){
-            document.querySelector(".toolcontainer").classList.remove("open");
-        }else{
-            document.querySelector(".toolcontainer").classList.add("open");
+    let draggingMarker = false;
+    let time = 0;
+    let isPlaying = false;
+    let donePlaying = true;
+    let timer = false;
+    let keyframes = [];
+    document.onkeypress = function (e) {
+        if(e.code == "KeyT"){
+            addKeyFrame();
+        }else if(e.code == "Space"){
+            if(donePlaying){
+                document.querySelector(".play-pause").classList.replace("ph-play", "ph-pause")
+                play();
+            }else{
+                isPlaying = !isPlaying;
+                if(document.querySelector(".play-pause").classList.contains("ph-play")){
+                    document.querySelector(".play-pause").classList.replace("ph-play", "ph-pause")
+                }else{
+                    document.querySelector(".play-pause").classList.replace("ph-pause", "ph-play")
+                }
+            }
         }
-    });
-    let dragElem;
-    let startX;
-    let startY;
-    let ratio;
-    document.querySelectorAll(".toolitem img").forEach((e)=>{
+    };
+    function addKeyFrame(){
+        let kobj = {time:time, objs:[]};
+        const frameId = Math.round(Math.random()*10000000);
+        const toolitems = document.querySelector(".overlay");
+        kobj.frameId = frameId;
+        for(let i = 0; i < toolitems.children.length; i++){
+            const e = toolitems.children[i];
+            let obj = {};
+            obj.x = parseFloat(e.style.left.split("px")[0]);
+            obj.y = parseFloat(e.style.top.split("px")[0]);
+            obj.meta = e.getAttribute("meta");
+            obj.src = e.src;
+            obj.id = e.id;
+            kobj.objs.push(obj);
+        }
+        let found = false;
+        for(let i = 0; i < keyframes.length; i++){
+            if(keyframes[i].time - 100 <= kobj.time && keyframes[i].time + 100 >= kobj.time && !found){
+                found = true;
+                document.getElementById(keyframes[i].frameId).remove();
+                keyframes[i] = kobj;
+                break;
+            }
+        }
+        if(!found){
+            keyframes.push(kobj);
+        }
+        
+        keyframes.sort((a, b) => a.time - b.time);
+        const elem = document.createElement("div");
+        elem.addEventListener("click", (e)=>{
+            if(Date.now() - timer <= 200){
+                const el = e.target;
+                keyframes = keyframes.filter((v)=>{
+                    return v.frameId+"" !== el.id
+                })
+                el.remove();
+            }
+            timer = Date.now();
+        })
+        elem.classList.add("frame");
+        elem.style.left = (time*getConstant()) + "px";
+        elem.setAttribute("time", time);
+        elem.id = frameId;
+        document.querySelector(".hrcontainer").appendChild(elem);
+    }
+    document.querySelector(".keyframecontainer").addEventListener("mousemove", (e)=>{
+        if(draggingMarker){
+            const x = e.clientX;
+            const y = e.clientY;
+            let left = (x - 10 +  + document.querySelector(".hrcontainer").scrollLeft)
+            if(left < 0){
+                left = 0;
+            }
+            document.querySelector(".marker").style.left = left + "px";
+            time = left/getConstant();
+            let k1 = false;
+            let k2 = false;
+            if(keyframes.length){
+                for(let i = 0; i < keyframes.length; i++){
+                    if(keyframes[i].time > time){
+                        k1 = keyframes[i - 1] || false;
+                        k2 = keyframes[i];
+                        break;
+                    }
+                }
+                if(!(k1||k2)){
+                    k1 = keyframes[keyframes.length - 1];
+                }
+                if(!k2){
+                    for(let i = 0; i < k1.objs.length; i++){
+                        const e = k1.objs[i];
+                        document.getElementById(e.id).style.left = e.x + "px";
+                        document.getElementById(e.id).style.top = e.y + "px";
+                    }
+                }else if(!k1){
+                    for(let i = 0; i < k2.objs.length; i++){
+                        const e = k2.objs[i];
+                        document.getElementById(e.id).style.left = e.x + "px";
+                        document.getElementById(e.id).style.top = e.y + "px";
+                    }
+                }else{
+                    for(let i = 0; i < k1.objs.length; i++){
+                        const e = k1.objs[i];
+                        for(let t = 0; t < k2.objs.length; t++){
+                            const l = k2.objs[t];
+                            if(l.id == e.id){
+                                let x = e.x + ((l.x - e.x)*((time-k1.time)/(k2.time - k1.time)));
+                                let y = e.y + ((l.y - e.y)*((time-k1.time)/(k2.time - k1.time)));
+                                document.getElementById(e.id).style.left = x + "px";
+                                document.getElementById(e.id).style.top = y + "px";
+                                break;
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            
+        }
+        
+    })
+    document.querySelector(".keyframecontainer").addEventListener("touchmove", (e)=>{
+        if(draggingMarker){
+            const x = e.targetTouches[0].pageX;
+            const y = e.targetTouches[0].pageY;
+            let left = (x - 10 +  + document.querySelector(".hrcontainer").scrollLeft)
+            if(left < 0){
+                left = 0;
+            }
+            document.querySelector(".marker").style.left = left + "px";
+            time = left/getConstant();
+            let k1 = false;
+            let k2 = false;
+            if(keyframes.length){
+                for(let i = 0; i < keyframes.length; i++){
+                    if(keyframes[i].time > time){
+                        k1 = keyframes[i - 1] || false;
+                        k2 = keyframes[i];
+                        break;
+                    }
+                }
+                if(!(k1||k2)){
+                    k1 = keyframes[keyframes.length - 1];
+                }
+                if(!k2){
+                    for(let i = 0; i < k1.objs.length; i++){
+                        const e = k1.objs[i];
+                        document.getElementById(e.id).style.left = e.x + "px";
+                        document.getElementById(e.id).style.top = e.y + "px";
+                    }
+                }else if(!k1){
+                    for(let i = 0; i < k2.objs.length; i++){
+                        const e = k2.objs[i];
+                        document.getElementById(e.id).style.left = e.x + "px";
+                        document.getElementById(e.id).style.top = e.y + "px";
+                    }
+                }else{
+                    for(let i = 0; i < k1.objs.length; i++){
+                        const e = k1.objs[i];
+                        for(let t = 0; t < k2.objs.length; t++){
+                            const l = k2.objs[t];
+                            if(l.id == e.id){
+                                let x = e.x + ((l.x - e.x)*((time-k1.time)/(k2.time - k1.time)));
+                                let y = e.y + ((l.y - e.y)*((time-k1.time)/(k2.time - k1.time)));
+                                document.getElementById(e.id).style.left = x + "px";
+                                document.getElementById(e.id).style.top = y + "px";
+                                break;
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            
+        }
+        
+    })
+    document.querySelector(".marker").addEventListener("mousedown", (e)=>{
+        draggingMarker = true;
+    })
+    document.querySelector("body").addEventListener("mouseup", (e)=>{
+        draggingMarker = false;
+    })
+    document.querySelector(".marker").addEventListener("touchstart", (e)=>{
+        console.log("e")
+        draggingMarker = true;
+    })
+    document.querySelector("body").addEventListener("touchend", (e)=>{
+        draggingMarker = false;
+    })
+    document.querySelector("hr").addEventListener("click", (e)=>{
+        
+    })
+    function addEvListenersBar(e){
         e.addEventListener("dragstart", (ed)=>{
             const dragImage = new Image();
             dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
@@ -162,6 +342,7 @@
                 startX = x - e.getBoundingClientRect().x;
                 startY = y - e.getBoundingClientRect().y;
                 dragElem = e.cloneNode();
+                dragElem.id = Math.round(Math.random()*10000000)
                 dragElem.addEventListener("dragstart", (ed)=>{
                     const dragImage = new Image();
                     dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
@@ -194,7 +375,7 @@
                 startX = x - e.getBoundingClientRect().x;
                 startY = y - e.getBoundingClientRect().y;
                 dragElem = e.cloneNode();
-                
+                dragElem.id = Math.round(Math.random()*10000000)
                 addEvListeners(dragElem);
                 document.querySelector(".overlay").appendChild(dragElem);
                 if(dragElem.getAttribute("meta")){
@@ -249,21 +430,171 @@
             dragElem.classList.remove("moving");
             dragElem = false;
         });
+    }
+    document.querySelector(".uploadImage").addEventListener("click", ()=>{
+        document.getElementById("uploadImage").click();
+    });
+    document.getElementById("uploadImage").addEventListener("change", (e)=>{
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                const dataURL = reader.result;
+                const elem = document.createElement("div");
+                elem.classList.add("toolitem");
+                const img = document.createElement("img");
+                img.src = dataURL;
+                img.id = file.name.replace(" ", "_");
+                img.classList.add("toolitemimg");
+                elem.appendChild(img);
+                document.querySelector(".toolitems").appendChild(elem);
+                addEvListenersBar(elem.children[0]);
+            }
+            reader.readAsDataURL(file);
+            
+        }
+    })
+    document.getElementById("pencil").addEventListener("click", ()=>{
+        if(document.getElementById("pencil").classList.contains("selected")){
+            document.getElementById("pencil").classList.remove("selected")
+            allowedToDraw = false;
+        }else{
+            document.getElementById("pencil").classList.add("selected")
+            document.getElementById("eraser").classList.remove("selected")
+            allowedToDraw = true;
+        }
+    })
+    document.getElementById("eraser").addEventListener("click", ()=>{
+        if(document.getElementById("eraser").classList.contains("selected")){
+            document.getElementById("eraser").classList.remove("selected")
+            allowedToDraw = false;
+        }else{
+            document.getElementById("eraser").classList.add("selected")
+            document.getElementById("pencil").classList.remove("selected")
+            allowedToDraw = "erase";
+        }
+    })
+    const canvas = document.getElementById("drawlayer");
+    const ctx = canvas.getContext("2d");
+    let isDrawing = false;
+    let allowedToDraw = false;
+    let drawColor = "#FFFFFF";
+    let stoppedDrawing = true;
+    let lastX = 0;
+    let lastY = 0;
+    document.querySelector("input[type='color']").addEventListener("change", (e)=>{
+        drawColor = document.querySelector("input[type='color']").value;
+    })
+    function startDrawing(e){
+        stoppedDrawing = false;
+        isDrawing = true;
+        lastX = ((e.clientX) - document.querySelector(".overlay").getBoundingClientRect().x)/ratio;
+        lastY = ((e.clientY) - document.querySelector(".overlay").getBoundingClientRect().y)/ratio;
+    }
+    function draw(e) {
+        if(stoppedDrawing) return;
+      if (!isDrawing) startDrawing(e);
+      const x = ((e.clientX||e.touches[0].clientX) - document.querySelector(".overlay").getBoundingClientRect().x)/ratio;
+      const y = ((e.clientY||e.touches[0].clientY) - document.querySelector(".overlay").getBoundingClientRect().y)/ratio;
+      ctx.strokeStyle = drawColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      if(allowedToDraw == "erase"){
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.arc(x, y, 30, 0, Math.PI * 2);
+        ctx.fill();
+      }else{
+        ctx.globalCompositeOperation = "source-over";
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+     
+      [lastX, lastY] = [x, y];
+    }
+    function stopDrawing() {
+      stoppedDrawing = true;
+    }
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stopDrawing);
+    canvas.addEventListener("mouseout", ()=>{
+        isDrawing = false;
+    });
+    canvas.addEventListener("touchstart", startDrawing);
+    canvas.addEventListener("touchmove", draw);
+    canvas.addEventListener("touchend", stopDrawing);
+
+    document.querySelector(".overlay").addEventListener("mousedown", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new MouseEvent("mousedown", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
+    })
+    document.querySelector(".overlay").addEventListener("mousemove", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new MouseEvent("mousemove", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
+    })
+    document.querySelector(".overlay").addEventListener("mouseup", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new MouseEvent("mouseup", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
+    })
+    document.querySelector(".overlay").addEventListener("mouseout", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new MouseEvent("mouseout", {clientX:(e.clientX||e.touches[0].clientX), clientY:(e.clientY||e.touches[0].clientY)}));
+    })
+    document.querySelector(".overlay").addEventListener("touchstart", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new TouchEvent("touchstart", e));
+    })
+    document.querySelector(".overlay").addEventListener("touchmove", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new TouchEvent("touchmove", e));
+    })
+    document.querySelector(".overlay").addEventListener("touchend", (e)=>{
+        if(allowedToDraw)
+        canvas.dispatchEvent(new TouchEvent("touchend", e));
+    })
+    document.querySelector(".ph-caret-right").addEventListener("click", (e)=>{
+        if(document.querySelector(".toolcontainer").classList.contains("open")){
+            document.querySelector(".toolcontainer").classList.remove("open");
+        }else{
+            document.querySelector(".toolcontainer").classList.add("open");
+        }
+    });
+    document.querySelector(".ph-caret-up").addEventListener("click", (e)=>{
+        if(document.querySelector(".keyframecontainer").classList.contains("open")){
+            document.querySelector(".keyframecontainer").classList.remove("open");
+        }else{
+            document.querySelector(".keyframecontainer").classList.add("open");
+        }
+    });
+    let dragElem;
+    let startX;
+    let startY;
+    let ratio;
+    document.querySelectorAll(".toolitem img").forEach((e)=>{
+        addEvListenersBar(e);
     })
     function addEvListeners(e){
-
         e.addEventListener("drag", (ev)=>{
             ev.preventDefault();
             const x = ev.x;
             const y = ev.y;
-            let scaleOff = false;
+            let scaleOff = 1;
             if(!dragElem){
                 dragElem = e;
-                if(dragElem.getAttribute("meta")){
-                    if(JSON.parse(dragElem.getAttribute("meta")).scaleoffset){
-                        scaleOff = JSON.parse(dragElem.getAttribute("meta")).scaleoffset;
+                try{
+                    if(dragElem.getAttribute("meta")){
+                        if(JSON.parse(dragElem.getAttribute("meta")).scaleoffset){
+                            scaleOff = JSON.parse(dragElem.getAttribute("meta")).scaleoffset;
+                        }
                     }
+                }catch(e){
+                    scaleOff = 1;
                 }
+                
                 startX = x/scaleOff - e.getBoundingClientRect().x/scaleOff;
                 startY = y/scaleOff - e.getBoundingClientRect().y/scaleOff;
             }
@@ -349,6 +680,11 @@
         document.querySelector(".overlay").style = `transform:scale(${document.querySelector(".imgcontainer img").getBoundingClientRect().width/960});`
         document.getElementById("drawlayer").style = `transform:scale(${document.querySelector(".imgcontainer img").getBoundingClientRect().width/960});`
         ratio = document.querySelector(".imgcontainer img").getBoundingClientRect().width/960;
+        const marker = document.querySelector(".marker");
+        marker.style.left = (time*getConstant()) + "px";
+        for(let i = 0; i < keyframes.length; i++){
+            document.getElementById(keyframes[i].frameId).style.left = (keyframes[i].time*getConstant()) + "px";
+        }
     }
 
     function putInJson(){
@@ -367,6 +703,7 @@
         const ccontents = canvas.toDataURL();
         var data = {data:ccontents};
         json.drawing = data;
+        json.keyframes = keyframes;
         return JSON.stringify(json);
     }
 
@@ -398,14 +735,20 @@
             node.classList.add("toolitemimg");
             node.setAttribute("meta", e.meta);
             let scaleOff = false;
-            if(node.getAttribute("meta")){
-                if(JSON.parse(node.getAttribute("meta")).scaleoffset){
-                    scaleOff = JSON.parse(node.getAttribute("meta")).scaleoffset;
+            try{
+                if(node.getAttribute("meta")){
+                    if(JSON.parse(node.getAttribute("meta")).scaleoffset){
+                        scaleOff = JSON.parse(node.getAttribute("meta")).scaleoffset;
+                    }
                 }
+            }catch(e){
+                scaleOff = 1;
             }
+            
             node.style = `transform:scale(${scaleOff});`;
             node.style.left = e.x + "px";
             node.style.top = e.y + "px";
+            node.id = e.id;
             node.style.position = "absolute";
             toolitems.appendChild(node);
             addEvListeners(node);
@@ -417,6 +760,29 @@
             ctx.drawImage(image, 0, 0);
         }
         image.src = json.drawing.data;
+        keyframes = json.keyframes;
+        document.querySelectorAll(".frame").forEach(e=>{
+            e.remove();
+        })
+        for(let i = 0; i < keyframes.length; i++){
+            const frame = keyframes[i];
+            const elem = document.createElement("div");
+            elem.addEventListener("click", (e)=>{
+                if(Date.now() - timer <= 200){
+                    const el = e.target;
+                    keyframes = keyframes.filter((v)=>{
+                        return v.frameId+"" !== el.id
+                    })
+                    el.remove();
+                }
+                timer = Date.now();
+            })
+            elem.classList.add("frame");
+            elem.style.left = (frame.time*getConstant()) + "px";
+            elem.setAttribute("time", frame.time);
+            elem.id = frame.frameId;
+            document.querySelector(".hrcontainer").appendChild(elem);
+        }
     }
     document.querySelector(".openbutton").addEventListener("click", ()=>{
         document.getElementById("openFile").click();
@@ -437,9 +803,77 @@
         };
         reader.readAsText(file);
     })
+    document.querySelector(".nkey").addEventListener("click", ()=>{
+        addKeyFrame();
+    })
+    document.querySelector(".play-pause").addEventListener("click", ()=>{
+        if(donePlaying){
+            document.querySelector(".play-pause").classList.replace("ph-play", "ph-pause")
+            play();
+        }else{
+            isPlaying = !isPlaying;
+            if(document.querySelector(".play-pause").classList.contains("ph-play")){
+                document.querySelector(".play-pause").classList.replace("ph-play", "ph-pause")
+            }else{
+                document.querySelector(".play-pause").classList.replace("ph-pause", "ph-play")
+            }
+        }
+    })
 </script>
 <style>
-    
+    .playkey .inner{
+        width: calc(100vw - 50px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 500px;
+    }
+    .playkey{
+        width: 100vw;
+        position: absolute;
+        left: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        top: 5px;
+    }
+    .nkey{
+        width: 75px;
+        color: white;
+        background-color: transparent;
+        border: 1px solid white;
+        border-radius: 15px;
+        outline: none;
+        cursor: pointer;
+    }
+    .play-pause{
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+    }
+    .frame{
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        transform: rotate(45deg) translateX(-2.5px) translateY(2.5px);
+        background-color: yellow;
+    }
+    .uploadImage{
+        width: 75px;
+        height: 75px;
+        margin: 5px;
+        border-radius: 15px;
+        outline: none;
+        border: 2px white solid;
+        background-color: rgba(0, 0, 0, 0.185);
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+    *{
+        user-select: none;
+    }
     .openbutton{
         position: absolute;
         right: 75px;
@@ -454,6 +888,7 @@
         cursor: pointer;
         border-radius: 12px;
         font-weight: 600;
+        z-index: 100000;
     }
     .savebutton{
         position: absolute;
@@ -461,6 +896,7 @@
         top: 20px;
         height: 35px;
         width: 75px;
+        z-index: 10000;
         font-size: 20px;
         outline: none;
         background-color: transparent;
@@ -528,7 +964,6 @@
     appearance: none;
     height: 85px;
     width: 85px;
-    transform: translateY(-3px);
     background-color: transparent;
     border: none;
     cursor: pointer;
@@ -551,6 +986,7 @@
         justify-content: center;
     }
     .tooldraw{
+        margin: 5px;
         width: 75px;
         height: 75px;
         background-color: transparent;
@@ -561,6 +997,7 @@
         justify-content: center;
         align-items: center;
     }
+    
     .tooldraw i{
         font-size: 40px;
         color: rgb(110, 110, 110);
@@ -644,6 +1081,19 @@
         top: 0;
         background-color: rgba(0, 0, 0, 0.315);
     }
+    .keyframecontainer{
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        left: 0;
+        height: 100px;
+        transition: bottom 0.2s ease-in-out;
+        position: absolute;
+        width: 100vw;
+        bottom: -100px;
+        background-color: rgba(0, 0, 0, 0.315);
+    }
     @media only screen and (max-width:445px){
         .toolcontainer{
             left: calc((100vw - 50px)*-1);
@@ -651,6 +1101,55 @@
     }
     .toolcontainer.open{
         left: 0;
+    }
+    .keyframecontainer.open{
+        bottom: 0;
+    }
+    .ph-caret-up{
+        z-index: 100;
+        position: absolute;
+        color: white;
+        font-size: 30px;
+        top: 0;
+        cursor: pointer;
+        
+        transform: scaleY(1) translateY(-30px);
+        transition: transform 0.2s ease-in-out;
+    }
+    .keyframecontainer.open .ph-caret-up{
+        transform: scaleY(-1);
+    }
+    .hrcontainer{
+        width: calc(100% - 20px);
+        height: 50px;
+        overflow-x:auto;
+        overflow-y: hidden;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .marker{
+        cursor: pointer;
+        height: 50px;
+        width: 20px;
+        transform: translateX(-10px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        left: 0;
+        background-color: transparent;
+    }
+    .marker .inner{
+        width: 2px;
+        height: 50px;
+        background-color: rgb(0, 204, 255);
+    }
+    hr{
+        width: calc(100vw - 20px);
+        min-width: 1000px;
+        height: 0px;
     }
 </style>
 </html>
